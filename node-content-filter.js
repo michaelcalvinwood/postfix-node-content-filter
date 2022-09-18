@@ -23,8 +23,20 @@ const extractValue = (key, source) => {
   return source.substring(loc+1).trimStart();
 }
 
+const processHtml = html => {
+
+  // process the email html here
+
+  
+  
+  return html;
+
+}
+
 const convertToNodeMailerMessageFormat = msg => {
   let message = {};
+ 
+  // set headers
   message.headers = {};
   let i;
 
@@ -39,17 +51,27 @@ const convertToNodeMailerMessageFormat = msg => {
         case 'subject':
             message.subject = extractValue('subject', msg.headerLines[i].line);
             break;
+        case 'content-type':
+            break;
         default:
-            if (typeof message.headers[msg.headerLines[i].key === 'undefined']) {
-
-            } else {
-
-            }
+            if (typeof message.headers[msg.headerLines[i].key.toString()] === 'undefined') {
+                message.headers[msg.headerLines[i].key] = [];
+            } 
+            message.headers[msg.headerLines[i].key.toString()].push(extractValue(msg.headerLines[i].key, msg.headerLines[i].line));
       }
   }
+
+  // add attachments
+
+  // process html
+  message.html = processHtml(msg.html);
+
+  // process text
+  message.text = processHtml(msg.textAsHtml);
   
   console.log('message', message);
   
+  return message;
 }
 
 const server = new SMTPServer({
@@ -64,25 +86,25 @@ const server = new SMTPServer({
     //getStream(stream)
     .then(async msg => {
         let msgObject = processMsg(msg);
-        let mime = convertToNodeMailerMessageFormat(msgObject);
-        callback(null);
+        let message = convertToNodeMailerMessageFormat(msgObject);
+        
         // let message = {
         //   envelope,
-        //   raw
+        //   
         // };
-        // let transporter = nodemailer.createTransport({
-        //   host: "127.0.0.1",
-        //   port: 10026,
-        //   secure: false,
-        //   ignoreTLS: true
-        // });
-        // try {
-        //   let info = await transporter.sendMail(message);
-        //   callback(null);
-        // } catch (e) {
-        //   console.error(e);
-        //   callback(new Error("Content filter unable to submit processed msg to SMTP server."));
-        // }
+        let transporter = nodemailer.createTransport({
+          host: "127.0.0.1",
+          port: 10026,
+          secure: false,
+          ignoreTLS: true
+        });
+        try {
+          let info = await transporter.sendMail(message);
+          callback(null);
+        } catch (e) {
+          console.error(e);
+          callback(new Error("Content filter unable to submit processed msg to SMTP server."));
+        }
         
     })
     .catch (e => {
